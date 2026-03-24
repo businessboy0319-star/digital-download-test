@@ -4,6 +4,6 @@ apps/backend/.env
 apps/backend/.env.local
 apps/backend/*.log
 apps/backend/package-lock.json
-apps/frontend
+apps/backend
 *.md
 .cursor/
