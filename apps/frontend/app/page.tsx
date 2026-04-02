@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Activity, Database, Package, Sparkles } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Skeleton from "@/components/ui/Skeleton";
@@ -8,6 +9,7 @@ import PageEnter from "@/components/PageEnter";
 import { getDashboard } from "@/services/api";
 import AnimatedTitle from "@/components/AnimatedTitle";
 import StatCard from "@/components/dashboard/StatCard";
+import Button from "@/components/ui/Button";
 
 function formatShortDate(iso: string) {
   try {
@@ -57,6 +59,7 @@ function CatalogHealthRing({ pct }: { pct: number }) {
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalAssets: 0,
@@ -71,6 +74,7 @@ export default function DashboardPage() {
     (async () => {
       try {
         setLoading(true);
+        setError(null);
         const res = await getDashboard();
         if (cancelled) return;
         setStats(res.stats);
@@ -79,8 +83,8 @@ export default function DashboardPage() {
         if (cancelled) return;
         setStats({ totalProducts: 0, totalAssets: 0, totalImports: 0 });
         setRecent([]);
-        // eslint-disable-next-line no-console
-        console.error("Failed to load dashboard", err);
+        const msg = err instanceof Error ? err.message : "Failed to fetch backend API";
+        setError(msg);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -111,6 +115,32 @@ export default function DashboardPage() {
             for a quick milestone walkthrough.
           </p>
         </div>
+
+        {error ? (
+          <Card className="mb-6 border-amber-200 bg-amber-50/60 p-6">
+            <div className="text-sm font-semibold text-amber-900">
+              Backend not reachable
+            </div>
+            <div className="mt-1 text-sm text-amber-900/90">
+              This page loads admin data from your backend API. Fix the backend
+              URL/port or start the backend server.
+            </div>
+            <div className="mt-3 rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-amber-900/90">
+              {error}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+              <Link
+                href="/demo"
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-base font-medium transition-colors bg-zinc-950 text-white hover:bg-zinc-900"
+              >
+                Open Milestone 3 Demo
+              </Link>
+            </div>
+          </Card>
+        ) : null}
 
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <StatCard
