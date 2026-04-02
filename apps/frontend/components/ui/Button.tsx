@@ -16,7 +16,7 @@ export default function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-base font-medium transition-colors",
         "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none shadow-none transition-shadow hover:shadow-[0_18px_45px_-25px_rgba(63,63,70,1)]",
         variant === "solid"
           ? "bg-zinc-950 text-white hover:bg-zinc-900"

@@ -9,9 +9,10 @@ import {
   FileSpreadsheet,
   LayoutDashboard,
   Package,
+  ShieldCheck,
 } from "lucide-react";
 
-const navItems: Array<{
+const adminNavItems: Array<{
   href: string;
   label: string;
   key: string;
@@ -25,6 +26,7 @@ const navItems: Array<{
     key: "csv-import",
     icon: FileSpreadsheet,
   },
+  { href: "/demo", label: "Milestone 3 Demo", key: "m3-demo", icon: ShieldCheck },
 ];
 
 function classNames(...values: Array<string | false | undefined>) {
@@ -51,12 +53,26 @@ function breadcrumbFromPath(pathname: string | null) {
   if (pathname.startsWith("/csv-import")) {
     return [{ label: "CSV Import", href: "/csv-import" as const }];
   }
+  if (pathname === "/demo") {
+    return [{ label: "Milestone 3 Demo", href: "/demo" as const }];
+  }
+  if (pathname.startsWith("/demo/")) {
+    const page = pathname.split("/")[2] ?? "";
+    return [
+      { label: "Milestone 3 Demo", href: "/demo" as const },
+      { label: page || "Demo", href: pathname as `/${string}` },
+    ];
+  }
   return [{ label: "Dashboard", href: "/" as const }];
 }
 
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const crumbs = breadcrumbFromPath(pathname);
+  const isDemo = Boolean(pathname?.startsWith("/demo"));
+  // Keep full navigation visible even during demo so the UI doesn't feel like
+  // elements "disappear". Demo mode is indicated via labels/badges instead.
+  const navItems = adminNavItems;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(1200px_circle_at_20%_-10%,rgba(99,102,241,0.12),transparent_55%),radial-gradient(900px_circle_at_100%_0%,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,#ffffff)] text-zinc-950">
@@ -70,7 +86,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               <div className="text-sm font-semibold tracking-tight text-zinc-950">
                 Digital Assets
               </div>
-              <div className="text-xs text-zinc-500">Catalog Admin</div>
+              <div className="text-xs text-zinc-500">{isDemo ? "Client Demo" : "Catalog Admin"}</div>
             </div>
           </div>
 
@@ -113,11 +129,12 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           <div className="mt-auto pt-10">
             <div className="rounded-2xl border border-indigo-100/90 bg-gradient-to-br from-indigo-50/90 to-white p-4 shadow-sm">
               <div className="text-xs font-semibold text-indigo-900">
-                Milestone demo
+                {isDemo ? "Client demo" : "Milestone demo"}
               </div>
               <div className="mt-1 text-xs leading-relaxed text-zinc-600">
-                UI is wired to your backend API — use CSV import and products to
-                verify the full flow.
+                {isDemo
+                  ? "Follow the steps: sign in → system check → your downloads."
+                  : "UI is wired to your backend API — use CSV import and products to verify the full flow."}
               </div>
             </div>
           </div>
@@ -150,8 +167,14 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                 </span>
               ))}
             </nav>
-            <span className="hidden shrink-0 rounded-full border border-emerald-200/90 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800 sm:inline">
-              API live
+            <span
+              className={
+                isDemo
+                  ? "hidden shrink-0 rounded-full border border-indigo-200/90 bg-indigo-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-900 sm:inline"
+                  : "hidden shrink-0 rounded-full border border-emerald-200/90 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800 sm:inline"
+              }
+            >
+              {isDemo ? "Client demo" : "API live"}
             </span>
           </header>
 

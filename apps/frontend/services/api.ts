@@ -1,5 +1,5 @@
 export const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://127.0.0.1:4001";
+  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://127.0.0.1:4000";
 
 type ApiError = { error?: string; message?: string };
 
@@ -7,20 +7,13 @@ async function apiFetch<T>(
   path: string,
   init?: RequestInit
 ): Promise<T> {
-  const requestUrl = `${BACKEND_URL}${path}`;
-
-  let res: Response;
-  try {
-    res = await fetch(requestUrl, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
-    });
-  } catch (error) {
-    throw error;
-  }
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
 
   const text = await res.text();
   const json = text ? safeJson(text) : null;
@@ -55,7 +48,7 @@ export type DashboardResponse = {
 };
 
 export type DebugProductsListResponse = {
-  products: Array<any>;
+  products: Array<unknown>;
   meta: {
     page: number;
     pageSize: number;
@@ -65,7 +58,7 @@ export type DebugProductsListResponse = {
 };
 
 export type DebugProductDetailResponse = {
-  product: any;
+  product: unknown;
 };
 
 export async function getDashboard(): Promise<DashboardResponse> {
@@ -127,6 +120,7 @@ export async function importCsvFromText(args: {
 export type AdminPreflightResponse = {
   ok: boolean;
   database: { ok: true } | { ok: false; message: string };
+  downloadPipeline?: { ok: true } | { ok: false; message: string };
   storage: { provider: string; ok?: boolean; message?: string };
 };
 
@@ -150,5 +144,124 @@ export async function getAdminPreflight(): Promise<AdminPreflightResponse> {
       storage: { provider: "cloudflare_r2", ok: false, message: "Invalid JSON" },
     };
   }
+}
+
+function authHeaders(accessToken: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  };
+}
+
+/** JWT claims plus resolved `public.users.id` (email/sub match). */
+export type AuthMeResponse = {
+  user: { sub: string; email?: string };
+  internalUserId: string | null;
+};
+
+export async function getAuthMe(accessToken: string): Promise<AuthMeResponse> {
+  return apiFetch<AuthMeResponse>("/auth/me", {
+    headers: authHeaders(accessToken),
+  });
+}
+
+export type MyDownloadsResponse = {
+  success: true;
+  userId: string;
+  membership: {
+    allowed: boolean;
+    reason?: string;
+    reasonCode?: string;
+    remainingDownloads?: number;
+    monthlyLimit?: number;
+  };
+  items: Array<{
+    productId: string;
+    dddId: string;
+    title: string;
+    category: string | null;
+    status: string | null;
+    hasDirectEntitlement: boolean;
+    sourceTypes: string[];
+    canDownloadViaMembership: boolean;
+    zipAsset: {
+      fileName: string | null;
+      filePath: string;
+      isExternalUrl: boolean;
+    } | null;
+  }>;
+};
+
+export async function listMyDownloads(accessToken: string): Promise<MyDownloadsResponse> {
+  return apiFetch<MyDownloadsResponse>("/downloads/me", {
+    headers: authHeaders(accessToken),
+  });
+}
+
+export type ProductDownloadUrlResponse = {
+  success: true;
+  downloadUrl: string;
+  productTitle?: string;
+  expiresIn: number;
+};
+
+export async function getProductDownloadUrl(
+  accessToken: string,
+  dddId: string
+): Promise<ProductDownloadUrlResponse> {
+  return apiFetch<ProductDownloadUrlResponse>(
+    `/downloads/${encodeURIComponent(dddId)}`,
+    {
+      headers: authHeaders(accessToken),
+    }
+  );
+}
+
+export type BatchDownloadCreateResponse = {
+  success: true;
+  jobId: string;
+  message: string;
+};
+
+export async function createBatchDownloadJob(
+  accessToken: string,
+  dddIds: string[]
+): Promise<BatchDownloadCreateResponse> {
+  return apiFetch<BatchDownloadCreateResponse>("/downloads/batch", {
+    method: "POST",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ dddIds }),
+  });
+}
+
+export type BatchDownloadJobPayload = {
+  id: string;
+  user_id: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  ddd_ids: string[];
+  r2_result_key: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+};
+
+export type BatchDownloadPollResponse = {
+  success: true;
+  job: BatchDownloadJobPayload;
+  downloadUrl?: string;
+  expiresIn?: number;
+};
+
+export async function getBatchDownloadJob(
+  accessToken: string,
+  jobId: string
+): Promise<BatchDownloadPollResponse> {
+  return apiFetch<BatchDownloadPollResponse>(
+    `/downloads/batch/${encodeURIComponent(jobId)}`,
+    {
+      headers: authHeaders(accessToken),
+    }
+  );
 }
 

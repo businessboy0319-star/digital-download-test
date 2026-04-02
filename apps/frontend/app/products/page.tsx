@@ -71,6 +71,7 @@ export default function ProductsPage() {
   const [pageSize, setPageSize] = useState(10);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -81,6 +82,7 @@ export default function ProductsPage() {
     (async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const res = await listProducts({
           search,
           page,
@@ -96,8 +98,9 @@ export default function ProductsPage() {
         setProducts([]);
         setTotalPages(1);
         setTotalProducts(0);
-        // eslint-disable-next-line no-console
-        console.error("Failed to load products", err);
+        const msg =
+          err instanceof Error ? err.message : "Failed to fetch backend API";
+        setError(msg);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -174,6 +177,27 @@ export default function ProductsPage() {
           </div>
         </div>
       </div>
+
+      {error ? (
+        <Card className="mb-6 border-amber-200 bg-amber-50/60 p-6">
+          <div className="text-sm font-semibold text-amber-900">
+            Backend not reachable
+          </div>
+          <div className="mt-1 text-sm text-amber-900/90">
+            This page loads product data from your backend API. Start the backend
+            server and make sure `NEXT_PUBLIC_BACKEND_URL` points to the correct
+            port.
+          </div>
+          <div className="mt-3 rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-amber-900/90">
+            {error}
+          </div>
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="p-5">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
